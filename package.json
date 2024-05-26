@@ -1,0 +1,22 @@
+{
+  "name": "backup-service",
+  "version": "1.0.0",
+  "description": "",
+  "type": "module",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "body-parser": "^1.20.2",
+    "cron": "^3.1.7",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "node-cron": "^3.0.3",
+    "node-scp": "^0.0.23",
+    "rsync": "^0.6.1"
+  }
+}
