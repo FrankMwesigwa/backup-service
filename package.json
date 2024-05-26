@@ -17,6 +17,7 @@
     "express": "^4.19.2",
     "node-cron": "^3.0.3",
     "node-scp": "^0.0.23",
-    "rsync": "^0.6.1"
+    "rsync": "^0.6.1",
+    "ssh2-sftp-client": "^10.0.3"
   }
 }

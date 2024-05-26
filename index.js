@@ -1,6 +1,6 @@
-import { exec } from 'child_process';
 import cron from 'node-cron';
 import dotenv from 'dotenv';
+import Client from 'ssh2-sftp-client';
 
 dotenv.config();
 
@@ -9,19 +9,38 @@ const remoteUser = process.env.REMOTE_USER;
 const remoteDirectory = process.env.REMOTE_DIRECTORY;
 const sourcefile = process.env.SOURCE_FILE;
 
-const copyToRemote = () => {
-    const command = `scp -r ${sourcefile} ${remoteUser}@${remoteHost}:${remoteDirectory}`;
+const sftp = new Client();
 
-    exec(command, { env: { ...process.env } }, (error, stdout, stderr) => {
-        if (error) {
-            console.error(`exec error: ${error}`);
-            return;
-        }
-        console.log(`stdout: ${stdout}`);
-        console.log('File transfer successful:');
-        console.error(`stderr: ${stderr}`);
-    });
+const copyToRemote = async () => {
+    try {
+        await sftp.connect({
+            host: remoteHost,
+            port: 22,
+            username: remoteUser,
+        });
+
+        sftp.on('upload', (info) => {
+            const transferred = info.bytesTransferred;
+            const total = info.size;
+            const percentage = ((transferred / total) * 100).toFixed(2);
+            console.log(`Transfer progress: ${percentage}%`);
+        });
+
+        await sftp.fastPut(sourcefile, `${remoteDirectory}/${sourcefile.split('/').pop()}`);
+        console.log('File transfer successful');
+    } catch (err) {
+        console.error('Error during file transfer:', err.message);
+    } finally {
+        sftp.end();
+    }
 };
+
+// cron.schedule('0 * * * *', () => {
+//     console.log('Starting file transfer...');
+//     copyToRemote().then(() => {
+//         console.log('File transfer job completed.');
+//     });
+// });
 
 copyToRemote();
 
