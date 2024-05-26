@@ -1,6 +1,6 @@
+import { exec } from 'child_process';
 import cron from 'node-cron';
 import dotenv from 'dotenv';
-import Client from 'ssh2-sftp-client';
 
 dotenv.config();
 
@@ -9,31 +9,34 @@ const remoteUser = process.env.REMOTE_USER;
 const remoteDirectory = process.env.REMOTE_DIRECTORY;
 const sourcefile = process.env.SOURCE_FILE;
 
-const sftp = new Client();
+const copyToRemote = () => {
+    const command = `scp -r -v ${sourcefile} ${remoteUser}@${remoteHost}:${remoteDirectory}`;
 
-const copyToRemote = async () => {
-    try {
-        await sftp.connect({
-            host: remoteHost,
-            port: 22,
-            username: remoteUser,
-        });
+    const childProcess = exec(command, { env: { ...process.env } });
 
-        sftp.on('upload', (info) => {
-            const transferred = info.bytesTransferred;
-            const total = info.size;
-            const percentage = ((transferred / total) * 100).toFixed(2);
-            console.log(`Transfer progress: ${percentage}%`);
-        });
+    childProcess.stdout.on('data', (data) => {
+        // Example output: 100% 105MB  20.0MB/s   00:05
+        const match = data.match(/(\d+)%/);
+        if (match) {
+            const percentage = parseInt(match[1], 10);
+            console.log(`File transfer progress: ${percentage}%`);
+        }
+        console.log(`stdout: ${data}`);
+    });
 
-        await sftp.fastPut(sourcefile, `${remoteDirectory}/${sourcefile.split('/').pop()}`);
-        console.log('File transfer successful');
-    } catch (err) {
-        console.error('Error during file transfer:', err.message);
-    } finally {
-        sftp.end();
-    }
+    childProcess.stderr.on('data', (data) => {
+        // console.error(`stderr: ${data}`);
+    });
+
+    childProcess.on('close', (code) => {
+        if (code === 0) {
+            console.log('File transfer successful');
+        } else {
+            console.error(`scp process exited with code ${code}`);
+        }
+    });
 };
+
 
 // cron.schedule('0 * * * *', () => {
 //     console.log('Starting file transfer...');
